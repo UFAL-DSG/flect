@@ -11,8 +11,8 @@ Basic usage
 
 * Prepare data using the `conll2arff.py` script.
 
-* Train your models and save them using `train.py` (setting the 
-     configuration via Python code – examples shown in `examples/`
+* Train your models and save them using `train.py` 
+    * setup the models' configuration via Python code as shown in `examples/`
 
 * Test the performance of your models using `test.py`
 
@@ -34,7 +34,7 @@ Distributed under the Apache 2.0 license. See `LICENSE` for more information.
 Please cite the following paper if using this in your scientific works:
 
 * Ondřej Dušek, Filip Jurčíček: "Robust Multilingual Statistical Morphological
-    Generation Models", in: ACL Student Research Workshop, Sofia, 2013.
+    Generation Models", in: ACL *Student Research Workshop*, Sofia, 2013.
 
 You may contact the authors at odusek * ufal.mff.cuni.cz in case of
 bugs or any questions.
