@@ -6,28 +6,28 @@ Authors: Ondřej Dušek and Filip Jurčíček
 
 Institute of Formal and Applied Linguistics, Charles University in Prague
 
-Basic usage:
+Basic usage
 ------------
 
-    * Prepare data using the `conll2arff.py` script.
+* Prepare data using the `conll2arff.py` script.
 
-    * Train your models and save them using `train.py` (setting the 
-         configuration via Python code – examples shown in `examples/`
+* Train your models and save them using `train.py` (setting the 
+     configuration via Python code – examples shown in `examples/`
 
-    * Test the performance of your models using `test.py`
+* Test the performance of your models using `test.py`
 
-Additional functions:
+Additional functions
 ---------------------
 
-    * You may generate further features (concatenations etc.)
-        using the `combine_features.py` script.
+* You may generate further features (concatenations etc.)
+    using the `combine_features.py` script.
 
-    * Data statistics may be obtained from `get_data_stats.py`,
-        `get_feat_list.py` and `select_errors.py`.
+* Data statistics may be obtained from `get_data_stats.py`,
+    `get_feat_list.py` and `select_errors.py`.
 
 
-License:
---------
+License
+-------
 
 Distributed under the Apache 2.0 license. See `LICENSE` for more information.
 
