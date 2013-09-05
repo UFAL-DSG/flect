@@ -33,7 +33,7 @@ import regex
 from lib.dataset import DataSet, Attribute
 from lib.model import Model
 from lib.flect import inflect
-from treex.core.log import log_info
+from lib.logf import log_info
 
 __author__ = "Ondřej Dušek"
 __date__ = "2013"

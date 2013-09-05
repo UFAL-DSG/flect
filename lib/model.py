@@ -7,7 +7,7 @@ import os
 
 
 """\
-Representing, training and saving scikit-learn classification models. 
+Representing, training and saving scikit-learn classification models.
 
 The main objects here are Model and SplitModel.
 """
@@ -23,8 +23,6 @@ import pickle
 import marshal
 import re
 import types
-import codecs
-import sys
 
 __author__ = "Ondřej Dušek"
 __date__ = "2013"
