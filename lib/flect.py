@@ -107,9 +107,10 @@ class SentenceInflector(object):
         # obtain lemmas
         lemmas = [word[0] for word in sent]
         # obtain features for classification
-        instances = [self.__get_features(word) for word in sent]
+        instances = [self.__get_features(sent, word_no)
+                     for word_no in xrange(len(sent))]
         # classify: obtain inflection rules
-        inflections = self.model.classify(instances)
+        inflections = self.__model.classify(instances)
         # inflect according to the rules
         forms = [inflect(lemma, inflection)
                  for lemma, inflection in zip(lemmas, inflections)]
@@ -139,3 +140,10 @@ class SentenceInflector(object):
         for suff_len in xrange(1, 9):
             feats['LemmaSuff_' + str(suff_len)] = feats['Lemma'][-suff_len:]
         return feats
+
+    def __parse_factored(self, sent):
+        """\
+        Parse a factored format, i.e. return a list of tuples corresponding
+        to words in the sentence.
+        """
+        return [tuple(word.split('|')) for word in sent.split(' ')]
