@@ -31,7 +31,7 @@ Basic usage
 * Test the performance of your models using `test.py`.
 
 * To easily access Flect as a library from your program, use the 
-    `SentenceInflector` class located in the `lib.flect` module.
+    `SentenceInflector` class located in the `flect.flect` module.
 
 Additional functions
 ---------------------

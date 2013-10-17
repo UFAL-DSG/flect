@@ -31,10 +31,10 @@ import marshal
 import getopt
 import types
 
-from lib.config import Config
-from lib.model import Model, SplitModel
-from lib.cluster import Job
-from lib.logf import log_info
+from flect.config import Config
+from flect.model import Model, SplitModel
+from flect.cluster import Job
+from flect.logf import log_info
 
 __author__ = "Ondřej Dušek"
 __date__ = "2012"

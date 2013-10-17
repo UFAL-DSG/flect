@@ -20,8 +20,8 @@ from __future__ import unicode_literals
 import sys
 import getopt
 import regex
-from lib.dataset import DataSet
-from lib.logf import log_info
+from flect.dataset import DataSet
+from flect.logf import log_info
 
 __author__ = "Ondřej Dušek"
 __date__ = "2013"

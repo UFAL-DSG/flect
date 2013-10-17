@@ -32,6 +32,7 @@ import sys
 import codecs
 import re
 
+
 class Dir:
     """\
     Direction to traverse diff matrixes (can be combined with "or").
@@ -212,7 +213,6 @@ def levenshtein_dist(s, t):
     """
     return max(len(s), len(t)) - sim_score(s, t, match_levenshtein,
                                            gap_levenshtein)
-
 
 def match_cstest(s, t, i, j):
     """\

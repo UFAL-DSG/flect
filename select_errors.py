@@ -13,8 +13,8 @@ Predicted attribute name defaults to 'PREDICTED'.
 
 from __future__ import unicode_literals
 
-from lib.dataset import DataSet, Attribute
-from lib.logf import log_info
+from flect.dataset import DataSet, Attribute
+from flect.logf import log_info
 import getopt
 import sys
 

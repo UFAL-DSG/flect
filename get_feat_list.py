@@ -12,8 +12,8 @@ Usage: ./get_feat_list.py model-file.gz output.txt
 from __future__ import unicode_literals
 import sys
 import getopt
-from lib.model import Model
-from lib.logf import log_info
+from flect.model import Model
+from flect.logf import log_info
 import codecs
 from operator import itemgetter
 

@@ -23,9 +23,9 @@ The switches may be combined and will be applied in the above order.
 from __future__ import unicode_literals
 
 import re
-import util.flect
-from lib.dataset import Attribute, DataSet
-from lib.logf import log_info
+import flect.flect
+from flect.dataset import Attribute, DataSet
+from flect.logf import log_info
 from itertools import combinations
 import getopt
 import sys
@@ -86,7 +86,7 @@ def inflect(data, attrib_lemma, attrib_infl, attrib_form):
     """
     attrib_lemma = data.get_attrib(attrib_lemma).name
     attrib_infl = data.get_attrib(attrib_infl).name
-    values = [util.flect.inflect(inst[attrib_lemma], inst[attrib_infl])
+    values = [flect.flect.inflect(inst[attrib_lemma], inst[attrib_infl])
               for inst in data]
     data.add_attrib(Attribute(attrib_form, 'string'), values)
 

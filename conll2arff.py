@@ -20,9 +20,9 @@ from __future__ import unicode_literals
 
 import getopt
 import sys
-import lib.string_distances as strdist
-from lib.varutil import file_stream
-from lib.dataset import DataSet, Attribute
+import flect.string_distances as strdist
+from flect.varutil import file_stream
+from flect.dataset import DataSet, Attribute
 
 __author__ = "Ondřej Dušek"
 __date__ = "2013"
