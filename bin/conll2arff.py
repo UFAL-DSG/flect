@@ -20,9 +20,9 @@ from __future__ import unicode_literals
 
 import getopt
 import sys
-import flect.string_distances as strdist
+from flect.string_distances import edit_script
 from flect.varutil import file_stream
-from flect.dataset import DataSet, Attribute
+from flect.dataset import DataSet
 
 __author__ = "Ondřej Dušek"
 __date__ = "2013"
@@ -40,7 +40,7 @@ def convert(in_file, out_file, feat_no, use_feat_names, cpos_chars):
     This does the conversion to ARFF.
     """
     fh_in = file_stream(in_file)
-    
+
     buf = []
     sent_id = 1
     word_id = 1
@@ -59,18 +59,17 @@ def convert(in_file, out_file, feat_no, use_feat_names, cpos_chars):
                 'word_id': word_id, 'sent_id': in_file + '-' + str(sent_id)
                }
         # computing form-lemma diff (edit script)
-        escr_front, escr_midback = strdist.edit_script(lemma, form,
-                strdist.match_levenshtein, strdist.gap_levenshtein)
+        escr_front, escr_midback = edit_script(lemma, form)
         inst['LemmaFormDiff_Front'] = escr_front
         inst['LemmaFormDiff_Back'] = escr_midback
         # lemma suffixes
         for i in xrange(1, 9):
             inst['LemmaSuff_' + str(i)] = lemma[-i:]
         # coarse POS
-        inst['Tag_CPOS'] = pos[:cpos_chars] 
-        # POS features        
-        feats = feat.split('|', feat_no-1)
-        feats += ['']*(feat_no-len(feats))
+        inst['Tag_CPOS'] = pos[:cpos_chars]
+        # POS features
+        feats = feat.split('|', feat_no - 1)
+        feats += [''] * (feat_no - len(feats))
         for feat_ord, feat in enumerate(feats, start=1):
             if use_feat_names:
                 feat_name, feat_val = feat.split('=', 1)
@@ -83,7 +82,7 @@ def convert(in_file, out_file, feat_no, use_feat_names, cpos_chars):
         buf.append(inst)
     # write this all out as ARFF
     data = DataSet()
-    attr_order = ['sent_id', 'word_id', 'Lemma', 'Form', 
+    attr_order = ['sent_id', 'word_id', 'Lemma', 'Form',
             'LemmaFormDiff_Front', 'LemmaFormDiff_Back']
     for i in xrange(1, 9):
         attr_order.append('LemmaSuff_' + str(i))
@@ -91,7 +90,7 @@ def convert(in_file, out_file, feat_no, use_feat_names, cpos_chars):
     data.load_from_dict(buf, {'word_id': 'numeric'}, attr_order)
     data.save_to_arff(out_file)
 
-    
+
 def main():
     """\
     Main program entry point.

@@ -4,11 +4,15 @@
 """
 String distance helper functions and testing.
 
-Many functions use a matching function (match) and
-gap penalty scores (gap). The only currently used settings
-for these functions are match_levenshtein and gap_levenshtein.
+The main function here is edit_script(), which produces the edit script
+given lemma and form.
 
-Can be run as a test from the command line.
+Many functions use a matching function (match) and gap penalty scores (gap).
+The only currently used settings for these functions are
+match_levenshtein() and gap_levenshtein(), which are preset as defaults
+in edit_script().
+
+This module can be run as a test from the command line.
 Usage: ./string_distances [-l] [-c] [-i] [-d]
 
 -l = use Levenshtein distance (default)
@@ -31,6 +35,74 @@ import getopt
 import sys
 import codecs
 import re
+
+__author__ = "Ondřej Dušek"
+__date__ = "2013"
+
+
+#
+# match and gap functions
+#
+
+def match_levenshtein(s, t, i, j):
+    """\
+    Matching function according to Levenshtein distance.
+    """
+    return 1 if s[i] == t[j] else 0
+
+
+def gap_levenshtein(s, i, cont):
+    """\
+    Gap penalty score according to Levenshtein distance.
+    """
+    return 0
+
+
+def levenshtein_dist(s, t):
+    """\
+    Levenshtein distance function.
+    """
+    return max(len(s), len(t)) - sim_score(s, t, match_levenshtein,
+                                           gap_levenshtein)
+
+
+def match_cstest(s, t, i, j):
+    """\
+    Matching function designed to work better on Czech. Turns
+    out to be unnecessary.
+    """
+    # TODO possibly make á-a + s-z (ismus), t-th etc. match
+    if s[i] == t[j] and (i == 0 or j == 0 or s[i - 1] == t[j - 1]):
+        # penalize matching ending of one word and beginning of the other
+        if (float(i) / len(s) >= 0.6 and j == 0) or \
+                (float(j) / len(t) >= 0.6 and i == 0):
+            return -3
+        # reward a continuing match
+        return 2
+    elif s[i] == t[j]:
+        # penalize random matching in endings more
+        if i >= len(s) - 2 or j >= len(t) - 2:
+            return -3
+        # penalize for start of a match
+        return -1
+    # penalize for start of a non-match
+    elif s[i] != t[j] and (i == 0 or j == 0 or s[i - 1] == t[j - 1]):
+        return -1
+    # continuing a non-match -- neither penalize nor reward
+    return 0
+
+
+def gap_cstest(s, i, cont):
+    """\
+    Gap function to work nicely on Czech. Obsolete.
+    """
+    if cont:
+        return 0
+    return -2
+
+#
+# helper functions
+#
 
 
 class Dir:
@@ -137,7 +209,11 @@ def merged_diff(s, t, match, gap):
     return diff[:-1]
 
 
-def edit_script(lemma, form, match, gap):
+#
+# Main function: edit scripts
+#
+
+def edit_script(lemma, form, match=match_levenshtein, gap=gap_levenshtein):
     """\
     Compute the edit script of two strings.
     """
@@ -184,6 +260,11 @@ def edit_script(lemma, form, match, gap):
     return front, midback
 
 
+#
+# Testing
+#
+
+
 def sim_score(s, t, match, gap):
     """\
     Compute similarity score of two strings according
@@ -191,62 +272,6 @@ def sim_score(s, t, match, gap):
     """
     H, _ = traverse_matrix(s, t, match, gap)
     return H[len(s), len(t)]
-
-
-def match_levenshtein(s, t, i, j):
-    """\
-    Matching function according to Levenshtein distance.
-    """
-    return 1 if s[i] == t[j] else 0
-
-
-def gap_levenshtein(s, i, cont):
-    """\
-    Gap penalty score according to Levenshtein distance.
-    """
-    return 0
-
-
-def levenshtein_dist(s, t):
-    """\
-    Levenshtein distance function.
-    """
-    return max(len(s), len(t)) - sim_score(s, t, match_levenshtein,
-                                           gap_levenshtein)
-
-def match_cstest(s, t, i, j):
-    """\
-    Matching function designed to work better on Czech. Turns
-    out to be unnecessary.
-    """
-    # TODO possibly make á-a + s-z (ismus), t-th etc. match
-    if s[i] == t[j] and (i == 0 or j == 0 or s[i - 1] == t[j - 1]):
-        # penalize matching ending of one word and beginning of the other
-        if (float(i) / len(s) >= 0.6 and j == 0) or \
-                (float(j) / len(t) >= 0.6 and i == 0):
-            return -3
-        # reward a continuing match
-        return 2
-    elif s[i] == t[j]:
-        # penalize random matching in endings more
-        if i >= len(s) - 2 or j >= len(t) - 2:
-            return -3
-        # penalize for start of a match
-        return -1
-    # penalize for start of a non-match
-    elif s[i] != t[j] and (i == 0 or j == 0 or s[i - 1] == t[j - 1]):
-        return -1
-    # continuing a non-match -- neither penalize nor reward
-    return 0
-
-
-def gap_cstest(s, i, cont):
-    """\
-    Gap function to work nicely on Czech. Obsolete.
-    """
-    if cont:
-        return 0
-    return -2
 
 
 def compare(s, t, match, gap, details):
@@ -260,7 +285,8 @@ def compare(s, t, match, gap, details):
         print >> out, path
         print >> out, 'Similarity:', sim_score(s, t, match, gap)
         print >> out, 'Alignment:', alignment(s, t, match, gap)
-    print >> out, 'Diff:', merged_diff(s, t, match, gap), 'Edit script:', edit_script(s, t, match, gap)
+    print >> out, 'Diff:', merged_diff(s, t, match, gap), 'Edit script:', \
+            edit_script(s, t, match, gap)
 
 
 if __name__ == '__main__':
