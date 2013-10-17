@@ -23,12 +23,12 @@ difference between the lemma and the form.
 Basic usage
 ------------
 
-* Prepare data using the `conll2arff.py` script.
+* Prepare data using the `bin/conll2arff.py` script.
 
-* Train your models and save them using `train.py`.
+* Train your models and save them using `bin/train.py`.
     * setup the models' configuration via Python code as shown in `configs/`.
 
-* Test the performance of your models using `test.py`.
+* Test the performance of your models using `bin/test.py`.
 
 * To easily access Flect as a library from your program, use the 
     `SentenceInflector` class located in the `flect.flect` module.
@@ -37,10 +37,10 @@ Additional functions
 ---------------------
 
 * You may generate further features (concatenations etc.)
-    using the `combine_features.py` script.
+    using the `bin/combine_features.py` script.
 
-* Data statistics may be obtained from `get_data_stats.py`,
-    `get_feat_list.py` and `select_errors.py`.
+* Data statistics may be obtained from `bin/get_data_stats.py`,
+    `bin/get_feat_list.py` and `bin/select_errors.py`.
 
 
 License
