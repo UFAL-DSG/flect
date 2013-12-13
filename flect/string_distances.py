@@ -260,6 +260,53 @@ def edit_script(lemma, form, match=match_levenshtein, gap=gap_levenshtein):
     return front, midback
 
 
+def inv_edit_script(form, lemma, match=match_levenshtein, gap=gap_levenshtein):
+    """\
+    Compute the edit script of two strings.
+    """
+    # TODO there should be some escaping.
+    diff = merged_diff(form, lemma, match, gap)
+    front, mid, back = '', '', ''
+
+    # no change
+    if not re.search(r'[`\'<>]', diff):
+        pass
+    # total change
+    elif re.match(r'(?:^`([^\']+)\')?<([^>]+)>', diff):
+        back = '*' + lemma
+    # just parts changed
+    else:
+        # changes in the back
+        m = re.search(r'(?:`([^\']+)\')?(?:<([^>]+)>)?$', diff)
+        if m:
+            length = len(m.group(1) or '')
+            add = m.group(2) or ''
+            if length or add:
+                back = '>' + str(length) + add
+        # changes in the middle
+        for m in re.finditer(r'(?:[^\'`<>])(?:`([^\']+)\'|<([^>]+)>){1,2}(?=[^\'`<>])', diff):
+            orig, new = m.groups()
+            if not orig and not new:
+                continue
+            orig = orig or ''
+            new = new or ''
+            tail = re.sub('([`\']|<[^>]*>)', '', diff[m.end():])
+            orig = str(len(tail) + len(orig)) + ':' + str(len(orig))
+            mid = (orig + '-' + new + ' ' + mid) if mid else (orig + '-' + new)
+        # additions to the beginning
+        m = re.search('^`([^\']*)\'', diff)
+        if m:
+            front = '<' + m.group(1)
+    # merge middle and back changes
+    midback = ''
+    if back and mid:
+        midback = back + ',' + mid
+    else:
+        midback = back if back else mid
+    # return the result
+    return front, midback
+
+
 #
 # Testing
 #
@@ -287,6 +334,8 @@ def compare(s, t, match, gap, details):
         print >> out, 'Alignment:', alignment(s, t, match, gap)
     print >> out, 'Diff:', merged_diff(s, t, match, gap), 'Edit script:', \
             edit_script(s, t, match, gap)
+    print >> out, 'Diff:', merged_diff(t, s, match, gap), \
+            'Inverse edit script:', inv_edit_script(t, s, match, gap)
 
 
 if __name__ == '__main__':

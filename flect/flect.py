@@ -9,7 +9,7 @@ from __future__ import unicode_literals
 
 import re
 from varutil import first
-from lib.model import Model
+from model import Model
 
 
 __author__ = "Ondřej Dušek"
