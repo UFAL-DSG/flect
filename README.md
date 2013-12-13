@@ -20,6 +20,8 @@ The system is able to inflect even previously unseen words by using lemma
 suffixes as features and predicting “edit scripts” that describe the 
 difference between the lemma and the form.
 
+![Flect schema](images/flect-schema.png)
+
 Basic usage
 ------------
 
