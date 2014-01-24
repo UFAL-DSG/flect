@@ -85,9 +85,13 @@ class SentenceInflector(object):
         model_file: path to a lib.model.Model in a pickle to be used for
                     classification
         """
-        # TODO handle features config (now dummy, preset for English)
+        # load the model
         self.__model_file = config['model_file']
         self.__model = Model.load_from_file(self.__model_file)
+        # setup input features
+        self.__features = config.get('features', 'Lemma|Tag_POS').split('|')
+        # setup further features created on-the-fly
+        self.__add_feats = self.__init_additional_features(config.get('additional_features', []))
 
     def inflect_sent(self, sent):
         """\
@@ -107,8 +111,8 @@ class SentenceInflector(object):
         # obtain lemmas
         lemmas = [word[0] for word in sent]
         # obtain features for classification
-        instances = [self.__get_features(sent, word_no)
-                     for word_no in xrange(len(sent))]
+        instances = self.__create_features(sent)
+        self.__add_features(instances)
         # classify: obtain inflection rules
         inflections = self.__model.classify(instances)
         # inflect according to the rules
@@ -117,29 +121,75 @@ class SentenceInflector(object):
         # return the result
         return ' '.join(forms) if return_string else forms
 
-    def __get_features(self, sent, word_no):
+    def __create_features(self, sent):
         """\
-        Retrieve all the features needed for morphological inflection
-        of word at the given position in the given sentence and return
-        them as a dictionary.
+        Create all features needed for the given sentence (using the
+        input features given directly in the sentence as well as any
+        additional features defined in the configuration).
+
+        @param sent: The input sentence (as an array of arrays, each corresponding \
+            to all input features for one word)
+        @return: An array of dictionaries, each representing all output features \
+            for one word
         """
-        # add lemma and morphological information (current and previous word)
-        feats = {
-                 'Lemma': sent[word_no][0],
-                 'Tag_POS': sent[word_no][1],
-                 'Tag_CPOS': sent[word_no][1][1],
-                 'Tag_FEAT1': '',
-                 'NEIGHBOR-1_Lemma': sent[word_no - 1][0]
-                    if word_no > 0 else '',
-                 'NEIGHBOR-1_Tag_POS': sent[word_no - 1][1]
-                    if word_no > 0 else '',
-                 'NEIGHBOR-1_Tag_CPOS':  sent[word_no - 1][1][1]
-                    if word_no > 0 else '',
-                 }
-        # lemma suffixes of length 1 - 8 (inclusive)
-        for suff_len in xrange(1, 9):
-            feats['LemmaSuff_' + str(suff_len)] = feats['Lemma'][-suff_len:]
-        return feats
+        instances = []
+        # create basic features
+        for word in sent:
+            inst = {}
+            for feat_name, feat_val in zip(self.__features, word):
+                inst[feat_name] = feat_val
+            instances.append(inst)
+        # create additional features
+        for feat_name, feat_func in self.__add_feats.iteritems():
+            for word_no, inst in enumerate(sent):
+                inst[feat_name] = feat_func(inst, word_no)
+        # return the result
+        return instances
+
+    def __init_additional_features(self, input_list):
+        """\
+        Precompiles given additional feature functions.
+
+        The functions are defined in a list of strings of the following form:
+
+            FeatureLabel: neighbor|substr|combine param1 param2 ...
+
+        For 'neighbor' features, the parameters are the relative shift from
+        the original word and the name of the target feature.
+
+        For 'substr' features the parameters are the length of the substring
+        (counted from the end if negative) and the target feature.
+
+        The 'combine' features require a list of target features from the same
+        word to be combined.
+        """
+        output_list = []
+        for feat in input_list:
+            # parse the input
+            label, func_name, func_params = re.split(r'[:\s]+', feat, 2)
+            func_params = re.split(r'[,\s]+', func_params)
+            feat_func = None
+            # create substring feature functions
+            if func_name.lower() == 'substr':
+                substr_len = int(func_params[0])
+                if substr_len < 0:
+                    feat_func = lambda sent, word_no: sent[word_no][func_params[1]][substr_len:]
+                else:
+                    feat_func = lambda sent, word_no: sent[word_no][func_params[1]][:substr_len]
+            # create neighbor feature functions
+            elif func_name.lower() == 'neighbor':
+                shift = int(func_params[0])
+                feat_func = lambda sent, word_no: (sent[word_no + shift][func_params[1]]
+                                                   if word_no + shift >= 0 and word_no + shift < len(sent)
+                                                   else '')
+            # create combining feature functions
+            elif func_name.lower() == 'combine':
+                feat_func = lambda sent, word_no: ''.join([sent[word_no][param] for param in func_params])
+            else:
+                raise Exception('Unknown feature format:' + feat)
+            # store the result
+            output_list.append((label, feat_func))
+        return output_list
 
     def __parse_factored(self, sent):
         """\

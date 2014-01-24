@@ -86,7 +86,7 @@ def create_job(config, name, work_dir, train_file, model_file,
     fh.close()
     # create the training job
     job = Job(name=name, work_dir=work_dir)
-    job.header = "from experiment.train_model import run_training\n"
+    job.header = "from flect.experiment.train_model import run_training\n"
     job.code = "run_training('{0}', '{1}',".format(work_dir, cfg_file) + \
             "'{0}', '{1}', {2})\n".format(train_file, model_file, test_str)
     job.submit(memory=memory)
