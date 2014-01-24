@@ -112,7 +112,6 @@ class SentenceInflector(object):
         lemmas = [word[0] for word in sent]
         # obtain features for classification
         instances = self.__create_features(sent)
-        self.__add_features(instances)
         # classify: obtain inflection rules
         inflections = self.__model.classify(instances)
         # inflect according to the rules
@@ -140,7 +139,7 @@ class SentenceInflector(object):
                 inst[feat_name] = feat_val
             instances.append(inst)
         # create additional features
-        for feat_name, feat_func in self.__add_feats.iteritems():
+        for feat_name, feat_func in self.__add_feats:
             for word_no, inst in enumerate(sent):
                 inst[feat_name] = feat_func(inst, word_no)
         # return the result
