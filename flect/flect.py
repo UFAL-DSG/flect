@@ -6,14 +6,14 @@ Inflection according to diff scripts.
 """
 
 from __future__ import unicode_literals
-
 import re
 from varutil import first
 from model import Model
+from functools import partial
 
 
 __author__ = "Ondřej Dušek"
-__date__ = "2012"
+__date__ = "2014"
 
 
 def inflect(lemma, inflection):
@@ -140,8 +140,8 @@ class SentenceInflector(object):
             instances.append(inst)
         # create additional features
         for feat_name, feat_func in self.__add_feats:
-            for word_no, inst in enumerate(sent):
-                inst[feat_name] = feat_func(inst, word_no)
+            for word_no, inst in enumerate(instances):
+                inst[feat_name] = feat_func(insts=instances, word_no=word_no)
         # return the result
         return instances
 
@@ -170,20 +170,13 @@ class SentenceInflector(object):
             feat_func = None
             # create substring feature functions
             if func_name.lower() == 'substr':
-                substr_len = int(func_params[0])
-                if substr_len < 0:
-                    feat_func = lambda sent, word_no: sent[word_no][func_params[1]][substr_len:]
-                else:
-                    feat_func = lambda sent, word_no: sent[word_no][func_params[1]][:substr_len]
+                feat_func = partial(self.substr, sublen=int(func_params[0]), orig_feat=func_params[1])
             # create neighbor feature functions
             elif func_name.lower() == 'neighbor':
-                shift = int(func_params[0])
-                feat_func = lambda sent, word_no: (sent[word_no + shift][func_params[1]]
-                                                   if word_no + shift >= 0 and word_no + shift < len(sent)
-                                                   else '')
+                feat_func = partial(self.neighbor, shift=int(func_params[0]), orig_feat=func_params[1])
             # create combining feature functions
             elif func_name.lower() == 'combine':
-                feat_func = lambda sent, word_no: ''.join([sent[word_no][param] for param in func_params])
+                feat_func = partial(self.combine, orig_feats=func_params)
             else:
                 raise Exception('Unknown feature format:' + feat)
             # store the result
@@ -196,3 +189,40 @@ class SentenceInflector(object):
         to words in the sentence.
         """
         return [tuple(word.split('|')) for word in sent.split(' ')]
+
+    @staticmethod
+    def substr(sublen, orig_feat, insts, word_no):
+        """Returns a substring of the original feature
+        @param sublen: Substring length (positive = from the beginning, negative = from the end)
+        @param orig_feat: Names of the original feature
+        @param insts: Data instances
+        @param word_no: Index of the target word
+        @return: The substring of the given feature of the given word
+        """
+        if sublen < 0:
+            return insts[word_no][orig_feat][sublen:]
+        return insts[word_no][orig_feat][:sublen]
+
+    @staticmethod
+    def neighbor(shift, orig_feat, insts, word_no):
+        """Returns features from a word's neighbor.
+        @param shift: Distance from the original word to the neighbor
+        @param orig_feats: Names of the features
+        @param insts: Data instances
+        @param word_no: Index of the original word
+        @return: The value of the given feature at word_no + shift, or '' if out of range
+        """
+        if word_no + shift < 0 or word_no + shift >= len(insts):
+            return ''
+        return insts[word_no + shift][orig_feat]
+
+    @staticmethod
+    def combine(orig_feats, insts, word_no):
+        """Combine the given features into one string.
+        @param orig_feats: Names of features to combine
+        @param insts: Data instances
+        @param word_no: Word index
+        @return: A concatenation of the values of the given features \
+            at the given position in the insts array.
+        """
+        return ''.join([insts[word_no][feat] for feat in orig_feats])
