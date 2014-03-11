@@ -206,9 +206,9 @@ class Model(AbstractModel):
                 "model.train('" + train_file + "', encoding='" + \
                 encoding + "')\n" \
                 "model.save_to_file('" + model_file + "')\n"
-        job.header += "from alex.components.nlg.tectotpl.tool.ml.model import Model\n" + \
+        job.header += "from flect.model import Model\n" + \
                 "import pickle\n" + \
-                "from alex.components.nlg.tectotpl.core.util import file_stream\n"
+                "from flect.varutil import file_stream\n"
         return job, model_file
 
     def train_on_data(self, train):

@@ -3,33 +3,18 @@
 #
 
 """
-Training sklearn models with treex.tool.ml.model.
-
-Usage: ./train_model.py work-dir config.py train-data.arff.gz \\
-                        model-file.pickle.gz \\
-                        [test-data.arff.gz classif-file.arff.gz]
-
-Locations of config.py, model-file.pickle.gz and classif-file are assumed
-to be relative to the work-dir.
-
-If divide_func is specified in the configuration file, a SplitModel is
-trained instead of Model.
-
-If unfold_pattern is specified, subdirectories are created in the main
-working directory for each model variant.
+Training sklearn models with flect.model (helper functions to bin/train.py).
 """
 
 from __future__ import unicode_literals
 
 import re
 import os
-import sys
 import pickle
 import marshal
-import getopt
 import types
 
-from alex.utils.config import Config
+from flect.config import Config
 from flect.model import Model, SplitModel
 from flect.cluster import Job
 from flect.logf import log_info
@@ -39,13 +24,6 @@ __date__ = "2012"
 
 
 MEMORY = 16
-
-
-def display_usage():
-    """\
-    Display program usage information.
-    """
-    print >> sys.stderr, __doc__
 
 
 def append_name(file_name, suffix):
@@ -83,7 +61,7 @@ def create_job(config, name, work_dir, train_file, model_file,
     fh.close()
     # create the training job
     job = Job(name=name, work_dir=work_dir)
-    job.header = "from experiment.train_model import run_training\n"
+    job.header = "from flect.experiment.train_model import run_training\n"
     job.code = "run_training('{0}', '{1}',".format(work_dir, cfg_file) + \
             "'{0}', '{1}', {2})\n".format(train_file, model_file, test_str)
     job.submit(memory=memory)
@@ -156,29 +134,3 @@ def run_training(work_dir, config_file, train_file, model_file,
     if ext != '.pickle':  # we need to make the path relative to work_dir
         model_file = os.path.join(work_dir, model_file)
     model.save_to_file(model_file)
-
-
-def main():
-    """\
-    Main program entry point.
-    """
-    opts, filenames = getopt.getopt(sys.argv[1:], 'm:hn:')
-    show_help = False
-    memory = MEMORY
-    job_name = 'train'
-    for opt, arg in opts:
-        if opt == '-m':
-            memory = int(arg)
-        elif opt == '-h':
-            show_help = True
-        elif opt == '-n':
-            job_name = arg
-    # display help and exit
-    if len(filenames) not in [4, 6] or show_help:
-        display_usage()
-        sys.exit(1)
-    # run the training
-    run_training(*filenames, memory=memory, name=job_name)
-
-if __name__ == '__main__':
-    main()
