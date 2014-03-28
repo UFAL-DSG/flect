@@ -27,6 +27,7 @@ import sys
 import getopt
 
 from flect.experiment.train_model import run_training
+from flect.experiment.fnames import get_files
 
 __author__ = "Ondřej Dušek"
 __date__ = "2012"
@@ -47,10 +48,11 @@ def main():
     """\
     Main program entry point.
     """
-    opts, filenames = getopt.getopt(sys.argv[1:], 'm:hn:')
+    opts, filenames = getopt.getopt(sys.argv[1:], 'm:hn:l')
     show_help = False
     memory = MEMORY
     job_name = 'train'
+    filelist = False
     for opt, arg in opts:
         if opt == '-m':
             memory = int(arg)
@@ -58,6 +60,20 @@ def main():
             show_help = True
         elif opt == '-n':
             job_name = arg
+        elif opt == '-l':
+            filelist = True
+    # special training: using filelist
+    if filelist:
+        if len(filenames) != 4 or show_help:
+            display_usage()
+            sys.exit(1)
+        work_dir, config, train_pattern, model_pattern = filenames
+        train_files = get_files(train_pattern)
+        for key, train_file in train_files:
+            print >> sys.stderr, key
+            model_file = model_pattern.replace('*', key)
+            run_training(work_dir, config, train_file, model_file, memory=memory, name=(job_name + key))
+        sys.exit(0)
     # display help and exit
     if len(filenames) not in [4, 6] or show_help:
         display_usage()

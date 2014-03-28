@@ -3,8 +3,6 @@
 #
 #
 from __future__ import unicode_literals
-import os
-
 
 """\
 Representing, training and saving scikit-learn classification models.
@@ -14,15 +12,17 @@ The main objects here are Model and SplitModel.
 
 from varutil import file_stream
 from logf import log_info
-from sklearn.metrics import zero_one_score
+from sklearn.metrics import accuracy_score
 from dataset import DataSet
 from sklearn.dummy import DummyClassifier
+from sklearn.feature_extraction.dict_vectorizer import DictVectorizer
 from cluster import Job
 import numpy as np
-import pickle
+import cPickle as pickle
 import marshal
 import re
 import types
+import os
 
 __author__ = "Ondřej Dušek"
 __date__ = "2013"
@@ -62,7 +62,7 @@ class AbstractModel(object):
             classif.rename_attrib(self.class_attr, self.PREDICTED)
             test.merge(classif)
             test.save_to_arff(classif_file, encoding)
-        return zero_one_score(golden, values)
+        return accuracy_score(golden, values)
 
     @staticmethod
     def load_from_file(model_file):
@@ -167,7 +167,7 @@ class Model(AbstractModel):
             else:
                 return cfg['classifier_class']()
         else:
-            return DummyClassifier()
+            return DummyClassifier(strategy='most_frequent')
 
     @staticmethod
     def create_training_job(config, work_dir, train_file,
@@ -223,7 +223,7 @@ class Model(AbstractModel):
         # if all the training data have the same class, use a dummy classifier
         if train.get_attrib(self.class_attr).num_values == 1:
             self.feature_filter = None
-            self.classifier = DummyClassifier()
+            self.classifier = DummyClassifier(strategy='most_frequent')
         # filter features
         log_info('Filtering...')
         train_filt = self.__filter_features(train_vect, train_classes)
@@ -243,9 +243,11 @@ class Model(AbstractModel):
         """
         self.train_on_data(self.load_training_set(train_file, encoding))
 
-    def classify(self, instances):
+    def classify(self, instances, pdist=False):
         """\
         Classify a set of instances (possibly one member).
+
+        @param pdist: Return probability distributions (as dictionaries)
         """
         # prepare for classification
         instances, nolist = self.check_classification_input(instances)
@@ -257,15 +259,21 @@ class Model(AbstractModel):
             inst_filt = self.__filter_features(inst_vect)
         else:
             inst_filt = inst_vect
-        # classify
-        values = self.classifier.predict(inst_filt)
-        # return the result
-        class_attr = self.data_headers.get_attrib(self.class_attr)
-        values = [class_attr.value(val) for val in values]
-        # (optional) post-processing
-        if self.postprocess:
-            values = [self.postprocess(inst, val)
-                      for inst, val in zip(instances, values)]
+        # classify (get probability distributions if needed)
+        if pdist == True:
+            values = self.classifier.predict_proba(inst_filt)
+            class_attr = self.data_headers.get_attrib(self.class_attr)
+            values = [{class_attr.value(val): prob for val, prob in enumerate(inst)}
+                      for inst in values]
+        else:
+            values = self.classifier.predict(inst_filt)
+            # return the result
+            class_attr = self.data_headers.get_attrib(self.class_attr)
+            values = [class_attr.value(val) for val in values]
+            # (optional) post-processing
+            if self.postprocess:
+                values = [self.postprocess(inst, val)
+                          for inst, val in zip(instances, values)]
         if nolist:
             return values[0]
         return values
@@ -391,7 +399,7 @@ class SplitModel(AbstractModel):
         self.data_headers = train.get_headers()
         # train a backoff model
         log_info('Training a backoff model...')
-        self.backoff_model = self.__train_backoff_model(train)
+        self.backoff_model = self.train_backoff_model(train)
         # split it
         log_info('Split...')
         train_split = train.split(eval(self.divide_func), keep_copy=False)
@@ -421,6 +429,15 @@ class SplitModel(AbstractModel):
         self.trained = True
         log_info('Training done.')
 
+    @staticmethod
+    def load_from_files(config, model_files):
+        model = SplitModel(config)
+        for key, model_file in model_files.iteritems():
+            model.models[key] = Model.load_from_file(model_file)
+        model.data_headers = model.models.itervalues().next().data_headers
+        model.trained = True
+        return model
+
     def classify(self, instances):
         """\
         Classify a set of instances.
@@ -444,11 +461,14 @@ class SplitModel(AbstractModel):
             return results[0]
         return results
 
-    def __train_backoff_model(self, train):
+    def train_backoff_model(self, train):
         """\
         Train a DummyClassifier back-off on the given training data.
         """
-        config = {'class_attr': self.class_attr, 'select_attr': []}
+        select_attr = [train.attribs[0].name]
+        if train.attribs[0].name == self.class_attr:
+            select_attr = [train.attribs[1].name]
+        config = {'class_attr': self.class_attr, 'select_attr': select_attr, 'vectorizer': DictVectorizer()}
         model = Model(config)
         model.train_on_data(train)
         return model

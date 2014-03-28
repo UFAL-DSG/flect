@@ -58,7 +58,7 @@ def load_as_module(path, force=False):
     sys.path.pop(0)
     if do_delete_temp:
         os.unlink(temp_path)
-        del sys.modules[modname]
+    del sys.modules[modname]
     return mod
 
 
