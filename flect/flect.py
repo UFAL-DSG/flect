@@ -2,15 +2,14 @@
 # coding=utf-8
 
 """
-Inflection according to diff scripts.
+Using Flect for inflection according to predicted edit scripts.
 """
 
 from __future__ import unicode_literals
 import re
 from varutil import first
-from model import Model
 from functools import partial
-
+from classif import FlectClassifier
 
 __author__ = "Ondřej Dušek"
 __date__ = "2014"
@@ -69,7 +68,7 @@ def inflect(lemma, inflection):
     return form
 
 
-class SentenceInflector(object):
+class SentenceInflector(FlectClassifier):
     """\
     A simple object that accepts sentences (with lemmas and morphological
     information) and inflect the words in them according
@@ -85,13 +84,10 @@ class SentenceInflector(object):
         model_file: path to a lib.model.Model in a pickle to be used for
                     classification
         """
-        # load the model
-        self.__model_file = config['model_file']
-        self.__model = Model.load_from_file(self.__model_file)
-        # setup input features
-        self.__features = config.get('features', 'Lemma|Tag_POS').split('|')
+        # load the model and setup basic features
+        super(SentenceInflector, self).__init__(config)
         # setup further features created on-the-fly
-        self.__add_feats = self.__init_additional_features(config.get('additional_features', []))
+        self.additional_features = self.__init_additional_features(config.get('additional_features', []))
 
     def inflect_sent(self, sent):
         """\
@@ -106,21 +102,20 @@ class SentenceInflector(object):
         """
         return_string = False
         if isinstance(sent, basestring):
-            sent = self.__parse_factored(sent)
+            sent = self.parse_factored(sent)
             return_string = True
-        # obtain lemmas
-        lemmas = [word[0] for word in sent]
         # obtain features for classification
-        instances = self.__create_features(sent)
+        instances = self.create_features(sent)
         # classify: obtain inflection rules
-        inflections = self.__model.classify(instances)
+        inflections = self.model.classify(instances)
         # inflect according to the rules
+        lemmas = [word[0] for word in sent]
         forms = [inflect(lemma, inflection)
                  for lemma, inflection in zip(lemmas, inflections)]
         # return the result
         return ' '.join(forms) if return_string else forms
 
-    def __create_features(self, sent):
+    def create_features(self, sent):
         """\
         Create all features needed for the given sentence (using the
         input features given directly in the sentence as well as any
@@ -131,15 +126,9 @@ class SentenceInflector(object):
         @return: An array of dictionaries, each representing all output features \
             for one word
         """
-        instances = []
-        # create basic features
-        for word in sent:
-            inst = {}
-            for feat_name, feat_val in zip(self.__features, word):
-                inst[feat_name] = feat_val
-            instances.append(inst)
-        # create additional features
-        for feat_name, feat_func in self.__add_feats:
+        instances = super(SentenceInflector, self).create_features(sent)
+        # insert additional features
+        for feat_name, feat_func in self.additional_features:
             for word_no, inst in enumerate(instances):
                 inst[feat_name] = feat_func(insts=instances, word_no=word_no)
         # return the result
@@ -183,16 +172,10 @@ class SentenceInflector(object):
             output_list.append((label, feat_func))
         return output_list
 
-    def __parse_factored(self, sent):
-        """\
-        Parse a factored format, i.e. return a list of tuples corresponding
-        to words in the sentence.
-        """
-        return [tuple(word.split('|')) for word in sent.split(' ')]
-
     @staticmethod
     def substr(sublen, orig_feat, insts, word_no):
-        """Returns a substring of the original feature
+        """Returns a substring of the original feature.
+
         @param sublen: Substring length (positive = from the beginning, negative = from the end)
         @param orig_feat: Names of the original feature
         @param insts: Data instances
@@ -206,6 +189,7 @@ class SentenceInflector(object):
     @staticmethod
     def neighbor(shift, orig_feat, insts, word_no):
         """Returns features from a word's neighbor.
+
         @param shift: Distance from the original word to the neighbor
         @param orig_feats: Names of the features
         @param insts: Data instances
@@ -219,6 +203,7 @@ class SentenceInflector(object):
     @staticmethod
     def combine(orig_feats, insts, word_no):
         """Combine the given features into one string.
+
         @param orig_feats: Names of features to combine
         @param insts: Data instances
         @param word_no: Word index
