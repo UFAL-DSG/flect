@@ -377,39 +377,25 @@ class DataSet(object):
         """
         if not self.is_empty:
             raise IOError('Cannot store second data set into the same object.')
+        # pre-create attributes in the given order (if applicable)
         self.attribs = []
         self.attribs_by_name = {}
         for attr_name in attrib_order:
             attr = Attribute(attr_name,
                             attrib_types.get(attr_name, 'string'))
             self.attribs_by_name[attr_name] = len(self.attribs)
-            self.attribs.append(attr) 
-        buf = []
-        # prepare 'instances' with stringy values, prepare attributes
-        for dict_inst in data:
-            inst = [None] * len(self.attribs)
-            for attr_name, val in dict_inst.iteritems():
-                try:
-                    attr = self.get_attrib(attr_name)
-                # attribute does not exist, create it
-                except:
-                    attr = Attribute(attr_name,
-                                     attrib_types.get(attr_name, 'string'))
-                    self.attribs_by_name[attr_name] = len(self.attribs)
-                    self.attribs.append(attr)
-                    inst.append(None)
-                # add the stringy value to the instance
-                idx = self.attrib_index(attr_name)
-                inst[idx] = val
-            buf.append(inst)
-        # convert instances to numeric representation and add to my list
-        for str_inst in buf:
-            if len(str_inst) < len(self.attribs):
-                str_inst += [None] * (len(self.attribs) - len(str_inst))
-            inst = [self.get_attrib(idx).soft_numeric_value(val, True)
-                    for idx, val in enumerate(str_inst)]
-            self.data.append(inst)
-            self.inst_weights.append(1.0)
+            self.attribs.append(attr)
+        # fill in the data, adding further attributes if necessary
+        self.__add_from_dict(data, add_attribs=True, add_values=True, attrib_types=attrib_types)
+
+    def append_from_dict(self, data, add_values=True):
+        """
+        Add new instances to the current data set from a list of dictionaries.
+
+        @param data: list of dictionaries to be added
+        @param add_values: if True, values missing in the headers will be added
+        """
+        self.__add_from_dict(data, False, add_values)
 
     def attrib_index(self, attrib_name):
         """\
@@ -830,6 +816,47 @@ class DataSet(object):
                                                            val, line_num))
             return values, weight
 
+    def __add_from_dict(self, data, add_attribs, add_values, attrib_types={}):
+        """\
+        Add new instances from a list of dictionaries.
+
+        @param data: list of dictionaries to be added
+        @param add_attribs: add new attributes from the dictionaries (or skip them)
+        @param add_values: add new values from the dictionaries
+        @param attrib_types: types of new attributes to be added from the dictionaries \
+                (default to string)
+        """
+        buf = []
+        # prepare 'instances' with lists of stringy values
+        for dict_inst in data:
+            inst = [None] * len(self.attribs)
+            for attr_name, val in dict_inst.iteritems():
+                # find the attribute in the headers
+                try:
+                    attr = self.get_attrib(attr_name)
+                # attribute does not exist, create or ignore it (according to settings)
+                except:
+                    if add_attribs:
+                        attr = Attribute(attr_name,
+                                         attrib_types.get(attr_name, 'string'))
+                        self.attribs_by_name[attr_name] = len(self.attribs)
+                        self.attribs.append(attr)
+                        inst.append(None)
+                    else:
+                        continue
+                # add the stringy value to the instance
+                idx = self.attrib_index(attr_name)
+                inst[idx] = val
+            buf.append(inst)
+        # convert instances to numeric representation and add to my list
+        for str_inst in buf:
+            if len(str_inst) < len(self.attribs):
+                str_inst += [None] * (len(self.attribs) - len(str_inst))
+            inst = [self.get_attrib(idx).soft_numeric_value(val, add_values)
+                    for idx, val in enumerate(str_inst)]
+            self.data.append(inst)
+            self.inst_weights.append(1.0)
+
     def __get_attrib_list(self, attribs):
         """\
         Convert the given list of names or indexes, or one name, or one index
@@ -856,8 +883,8 @@ class DataSet(object):
             raise ValueError('Data sets have different numbers of attributes!')
         for my_attr, other_attr in zip(self.attribs, other.attribs):
             if my_attr.type != other_attr.type:
-                raise ValueError('Attributes ' + my_attr + ' and ' +
-                                 other_attr + ' must be of the same type!')
+                raise ValueError('Attributes ' + str(my_attr) + ' and ' +
+                                 str(other_attr) + ' must be of the same type!')
 
     def __convert_to_headers(self, inst, other, add_values):
         """\
