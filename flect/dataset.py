@@ -368,12 +368,22 @@ class DataSet(object):
         # store the data
         self.data = [[attrib.soft_numeric_value(val, True)] for val in vect]
 
-    def load_from_dict(self, data, attrib_types={}, attrib_order=[]):
+    def load_from_dict(self, data, attrib_types={}, attrib_order=[], sparse=False):
         """\
-        Fill in values from a list of dictionaries (=instances).
-        Attributes are assumed to be of string type unless specified
-        otherwise in the attrib_types variable.
-        Currently only capable of creating dense data sets.
+        Fill in values into an empty DataSet from a list of dictionaries (=instances).
+
+        The type of attributes is assumed to be string, unless:
+
+        a) the type is given in attrib_types
+        b) the attribute is not listed in attrib_order and the first encountered value \
+            for this attribute is a float.
+
+        @param data: The data to be converted to a DataSet, as a list of dictionaries
+        @param attrib_types: a dictionary of the following form: attribute name -> attribute type
+        @param attrib_order: a list of attributes' names in the order they should appear \
+            in the resulting DataSet
+        @param sparse: create a sparse data set?
+        @rtype: None
         """
         if not self.is_empty:
             raise IOError('Cannot store second data set into the same object.')
@@ -385,6 +395,8 @@ class DataSet(object):
                             attrib_types.get(attr_name, 'string'))
             self.attribs_by_name[attr_name] = len(self.attribs)
             self.attribs.append(attr)
+        if sparse:
+            self.is_sparse = True
         # fill in the data, adding further attributes if necessary
         self.__add_from_dict(data, add_attribs=True, add_values=True, attrib_types=attrib_types)
 
@@ -824,7 +836,7 @@ class DataSet(object):
         @param add_attribs: add new attributes from the dictionaries (or skip them)
         @param add_values: add new values from the dictionaries
         @param attrib_types: types of new attributes to be added from the dictionaries \
-                (default to string)
+                (default to numeric for float values, string otherwise)
         """
         buf = []
         # prepare 'instances' with lists of stringy values
@@ -837,8 +849,9 @@ class DataSet(object):
                 # attribute does not exist, create or ignore it (according to settings)
                 except:
                     if add_attribs:
-                        attr = Attribute(attr_name,
-                                         attrib_types.get(attr_name, 'string'))
+                        attr_type = attrib_types.get(attr_name,
+                                                     'numeric' if type(val) == float else 'string')
+                        attr = Attribute(attr_name, attr_type)
                         self.attribs_by_name[attr_name] = len(self.attribs)
                         self.attribs.append(attr)
                         inst.append(None)
@@ -854,6 +867,8 @@ class DataSet(object):
                 str_inst += [None] * (len(self.attribs) - len(str_inst))
             inst = [self.get_attrib(idx).soft_numeric_value(val, add_values)
                     for idx, val in enumerate(str_inst)]
+            if self.is_sparse:
+                inst = sp.lil_matrix(inst)
             self.data.append(inst)
             self.inst_weights.append(1.0)
 
@@ -862,7 +877,7 @@ class DataSet(object):
         Convert the given list of names or indexes, or one name, or one index
         to a list and a set of indexes.
         """
-        if isinstance(attribs, list):
+        if isinstance(attribs, list) or isinstance(attribs, set):
             attribs = [self.attrib_index(a) if isinstance(a, basestring) else a
                        for a in attribs]
         elif isinstance(attribs, basestring):

@@ -42,8 +42,8 @@ class AbstractModel(object):
         # attribute pre-selection (remove class attribute from select_attr)
         self.class_attr = config['class_attr']
         self.select_attr = config.get('select_attr', [])
-        if self.class_attr in self.select_attr:
-            self.select_attr.remove(self.class_attr)
+        self.ignore_attr = config.get('ignore_attr', [])
+        self.attr_mask = None
         # part of the training data to be used
         self.train_part = config.get('train_part', 1)
 
@@ -129,6 +129,20 @@ class AbstractModel(object):
             nolist = True
             instances = [instances]
         return instances, nolist
+
+    def get_attr_mask(self):
+        """\
+        Create a set of selected attributes' names (using data headers, list of attributes
+        to select and to ignore, and the class attribute).
+        """
+        # only use attributes present in data headers
+        attr_mask = set([attr.name for attr in self.data_headers.attribs])
+        # assume empty selected attributes means all attributes are selected
+        if self.select_attr:
+            attr_mask &= set(self.select_attr)
+        attr_mask -= set([self.class_attr])
+        attr_mask -= set(self.ignore_attr)
+        return attr_mask
 
 
 class Model(AbstractModel):
@@ -218,6 +232,7 @@ class Model(AbstractModel):
         """
         log_info('Preparing data set...')
         self.data_headers = train.get_headers()
+        self.attr_mask = self.get_attr_mask()
         train_vect = self.__vectorize(train)
         train_classes = self.get_classes(train)
         # if all the training data have the same class, use a dummy classifier
@@ -292,15 +307,13 @@ class Model(AbstractModel):
             data.match_headers(self.data_headers, add_values=True)
             # TODO pre-filtering here?
             return data.as_bunch(target=self.class_attr,
-                                 select_attrib=self.select_attr).data
+                                 select_attrib=self.attr_mask).data
         # vectorization needed: converted to dictionary
         # and passed to the vectorizer
         if isinstance(data, DataSet):
-            data = data.as_dict(select_attrib=self.select_attr,
-                                mask_attrib=self.class_attr)
+            data = data.as_dict(select_attrib=self.attr_mask)
         else:
-            data = [{key: val for key, val in inst.items()
-                     if key != self.class_attr and key in self.select_attr}
+            data = [{key: val for key, val in inst.items() if key in self.attr_mask}
                     for inst in data]
         # pre-filter attributes if filter_attr is set
         if self.filter_attr:
@@ -397,6 +410,7 @@ class SplitModel(AbstractModel):
         # load the entire data set
         train = self.load_training_set(train_file, encoding)
         self.data_headers = train.get_headers()
+        self.attr_mask = self.get_attr_mask()
         # train a backoff model
         log_info('Training a backoff model...')
         self.backoff_model = self.train_backoff_model(train)
@@ -435,6 +449,7 @@ class SplitModel(AbstractModel):
         for key, model_file in model_files.iteritems():
             model.models[key] = Model.load_from_file(model_file)
         model.data_headers = model.models.itervalues().next().data_headers
+        model.attr_mask = model.models.itervalues().next().attr_mask
         model.trained = True
         return model
 
