@@ -292,7 +292,9 @@ class DataSet(object):
                 continue
             # relation name
             elif line.lower().startswith('@relation'):
-                self.relation_name = line.split(None, 1)[1]
+                tokens = line.split(None, 1)
+                if len(tokens) > 1:
+                    self.relation_name = tokens[1]
             # attribute definition
             elif line.lower().startswith('@attribute'):
                 attr_name, attr_type = line.split(None, 2)[1:]
@@ -368,7 +370,7 @@ class DataSet(object):
         # store the data
         self.data = [[attrib.soft_numeric_value(val, True)] for val in vect]
 
-    def load_from_dict(self, data, attrib_types={}, attrib_order=[], sparse=False):
+    def load_from_dict(self, data, attrib_types={}, attrib_order=[], sparse=False, default_val=None):
         """\
         Fill in values into an empty DataSet from a list of dictionaries (=instances).
 
@@ -398,16 +400,17 @@ class DataSet(object):
         if sparse:
             self.is_sparse = True
         # fill in the data, adding further attributes if necessary
-        self.__add_from_dict(data, add_attribs=True, add_values=True, attrib_types=attrib_types)
+        self.__add_from_dict(data, add_attribs=True, add_values=True,
+                             attrib_types=attrib_types, default_val=default_val)
 
-    def append_from_dict(self, data, add_values=True):
+    def append_from_dict(self, data, add_values=True, default_val=None):
         """
         Add new instances to the current data set from a list of dictionaries.
 
         @param data: list of dictionaries to be added
         @param add_values: if True, values missing in the headers will be added
         """
-        self.__add_from_dict(data, False, add_values)
+        self.__add_from_dict(data, False, add_values, default_val=default_val)
 
     def attrib_index(self, attrib_name):
         """\
@@ -430,6 +433,8 @@ class DataSet(object):
         """\
         Return a copy of the headers of this data set (just attributes list,
         relation name and sparse/dense setting)
+
+        @rtype DataSet
         """
         ret = DataSet()
         ret.attribs = copy.deepcopy(self.attribs)
@@ -828,7 +833,7 @@ class DataSet(object):
                                                            val, line_num))
             return values, weight
 
-    def __add_from_dict(self, data, add_attribs, add_values, attrib_types={}):
+    def __add_from_dict(self, data, add_attribs, add_values, attrib_types={}, default_val=None):
         """\
         Add new instances from a list of dictionaries.
 
@@ -841,7 +846,7 @@ class DataSet(object):
         buf = []
         # prepare 'instances' with lists of stringy values
         for dict_inst in data:
-            inst = [None] * len(self.attribs)
+            inst = [default_val] * len(self.attribs)
             for attr_name, val in dict_inst.iteritems():
                 # find the attribute in the headers
                 try:
@@ -854,7 +859,7 @@ class DataSet(object):
                         attr = Attribute(attr_name, attr_type)
                         self.attribs_by_name[attr_name] = len(self.attribs)
                         self.attribs.append(attr)
-                        inst.append(None)
+                        inst.append(default_val)
                     else:
                         continue
                 # add the stringy value to the instance
@@ -864,7 +869,7 @@ class DataSet(object):
         # convert instances to numeric representation and add to my list
         for str_inst in buf:
             if len(str_inst) < len(self.attribs):
-                str_inst += [None] * (len(self.attribs) - len(str_inst))
+                str_inst += [default_val] * (len(self.attribs) - len(str_inst))
             inst = [self.get_attrib(idx).soft_numeric_value(val, add_values)
                     for idx, val in enumerate(str_inst)]
             if self.is_sparse:

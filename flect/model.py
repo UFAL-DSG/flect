@@ -301,8 +301,8 @@ class Model(AbstractModel):
         # no vectorization performed, only converted to matrix
         if self.vectorizer is None:
             if not isinstance(data, DataSet):
-                data_set = DataSet()
-                data_set.load_from_dict(data)
+                data_set = self.data_headers.get_headers()
+                data_set.append_from_dict(data)  # TODO use zeroes somehow – parameter to models?
                 data = data_set
             data.match_headers(self.data_headers, add_values=True)
             # TODO pre-filtering here?
