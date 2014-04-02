@@ -46,6 +46,8 @@ class AbstractModel(object):
         self.attr_mask = None
         # part of the training data to be used
         self.train_part = config.get('train_part', 1)
+        # 'unknown' value for instances that have unknown parameters (defaults to None/missing)
+        self.unknown_value = config.get('unknown_value', None)
 
     def evaluate(self, test_file, encoding='UTF-8', classif_file=None):
         """\
@@ -302,7 +304,7 @@ class Model(AbstractModel):
         if self.vectorizer is None:
             if not isinstance(data, DataSet):
                 data_set = self.data_headers.get_headers()
-                data_set.append_from_dict(data)  # TODO use zeroes somehow – parameter to models?
+                data_set.append_from_dict(data, add_values=True, default_val=self.unknown_value)
                 data = data_set
             data.match_headers(self.data_headers, add_values=True)
             # TODO pre-filtering here?

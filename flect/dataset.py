@@ -271,9 +271,13 @@ class DataSet(object):
                      target=y,
                      target_names=self.attribs[target].labels)
 
-    def load_from_arff(self, filename, encoding='UTF-8'):
+    def load_from_arff(self, filename, encoding='UTF-8', headers_only=False):
         """\
         Load an ARFF file/stream, filling the data structures.
+
+        @param filename: the ARFF file to read
+        @param encoding: the encoding (defaults to UTF-8)
+        @param headers_only: read just the headers, ignore data
         """
         # initialize
         if not self.is_empty:
@@ -302,6 +306,8 @@ class DataSet(object):
             # data section start
             elif line.lower().startswith('@data'):
                 status = 'data'
+                if headers_only:  # stop after reading headers
+                    break
             # data lines
             elif status == 'data' and line != '':
                 inst, weight = self.__parse_line(line, line_num)
@@ -387,6 +393,7 @@ class DataSet(object):
         @param sparse: create a sparse data set?
         @rtype: None
         """
+        self.relation_name = '<noname>'
         if not self.is_empty:
             raise IOError('Cannot store second data set into the same object.')
         # pre-create attributes in the given order (if applicable)
