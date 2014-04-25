@@ -393,9 +393,10 @@ class DataSet(object):
         @param sparse: create a sparse data set?
         @rtype: None
         """
-        self.relation_name = '<noname>'
         if not self.is_empty:
             raise IOError('Cannot store second data set into the same object.')
+        # set 'some' relation name
+        self.relation_name = '<noname>'
         # pre-create attributes in the given order (if applicable)
         self.attribs = []
         self.attribs_by_name = {}
