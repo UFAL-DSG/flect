@@ -252,6 +252,11 @@ from __future__ import unicode_literals
         else:
             raise ValueError('Unknown dependency type!')
 
+    def delete(self):
+        """Delete this job."""
+        if self.submitted:
+            self.__try_command('qdel ' + self.jobid)
+
     @property
     def host(self):
         """\
