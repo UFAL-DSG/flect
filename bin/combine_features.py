@@ -25,7 +25,7 @@ from __future__ import unicode_literals
 import re
 import flect.flect
 from flect.dataset import Attribute, DataSet
-from flect.logf import log_info
+from flect.logf import log_info, log_warn
 from itertools import combinations
 import getopt
 import sys
@@ -71,11 +71,12 @@ def combine_tag_num_gen_cas(data):
 
 def combine_subsets(data, attribs, up_to_size):
     """\
-    Combine all subsets of the given attribute list, up no given
+    Combine all subsets of the given attribute list, up to given
     size.
     """
-    for size in range(1, up_to_size + 1):
+    for size in range(2, up_to_size + 1):
         for attr_set in combinations(attribs, size):
+            log_info('Combining %s...' % '+'.join(attr_set))
             concat_attrib(data, attr_set, divider='|', nonempty=True)
 
 
@@ -121,11 +122,15 @@ def add_substr_attributes(data, sub_len, attrib):
     """
     attrib = data.get_attrib(attrib).name
     for l in xrange(1, abs(sub_len) + 1):
-        values = [inst[attrib][:l].lower() if sub_len > 0
-                  else inst[attrib][-l:].lower()
-                  for inst in data]
-        new_name = attrib + '_SUBSTR' + ('+' if sub_len > 0 else '-') + \
-                str(l)
+        values = []
+        for i, inst in enumerate(data):
+            try:
+                values.append(inst[attrib][:l].lower() if sub_len > 0 else [attrib][-l:].lower())
+            except Exception as e:
+                log_warn('Fatal error at instance %d : ' % i + unicode(inst))
+                raise e
+
+        new_name = attrib + '_SUBSTR' + ('+' if sub_len > 0 else '-') + str(l)
         data.add_attrib(Attribute(new_name, 'string'), values)
 
 
