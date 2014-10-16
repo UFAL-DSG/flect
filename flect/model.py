@@ -277,7 +277,7 @@ class Model(AbstractModel):
         else:
             inst_filt = inst_vect
         # classify (get probability distributions if needed)
-        if pdist == True:
+        if pdist is True:
             values = self.classifier.predict_proba(inst_filt)
             class_attr = self.data_headers.get_attrib(self.class_attr)
             values = [{class_attr.value(val): prob for val, prob in enumerate(inst)}
@@ -335,8 +335,7 @@ class Model(AbstractModel):
             return data
         if not self.feature_filter_trained:
             if classes is None:
-                raise Exception('Classes must be given to ' +
-                                       'train a feature filter!')
+                raise Exception('Classes must be given to train a feature filter!')
             self.feature_filter.fit(data, classes)
             self.feature_filter_trained = True
         return self.feature_filter.transform(data)
@@ -489,3 +488,36 @@ class SplitModel(AbstractModel):
         model = Model(config)
         model.train_on_data(train)
         return model
+
+
+class ConcatModel(AbstractModel):
+    """A model that runs several Model-s in parallel and concatenates their output class.
+
+    Used for Flect's front&back separate models."""
+
+    def __init__(self, config):
+        super(ConcatModel, self).__init__(config)
+        # create Model array
+        self.models = []
+        self.trained = False
+
+    @staticmethod
+    def load_from_files(config, model_files):
+        model = ConcatModel(config)
+        for model_file in model_files:
+            model.models.append(Model.load_from_file(model_file))
+        model.data_headers = model.models[0].data_headers
+        model.attr_mask = model.models[0].attr_mask
+        model.trained = True
+        return model
+
+    def classify(self, instances):
+        """Classify a set of instances, concatenating the result class (comma-separated)."""
+        instances, nolist = self.check_classification_input(instances)
+        results = self.models[0].classify(instances)
+        for model in self.models[1:]:
+            results = [cur + ',' + new if new != '' else cur
+                       for cur, new in zip(results, model.classify(instances))]
+        if nolist:
+            return results[0]
+        return results
