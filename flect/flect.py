@@ -10,6 +10,7 @@ import re
 from varutil import first
 from functools import partial
 from classif import FlectClassifier
+from logf import log_info
 
 __author__ = "Ondřej Dušek"
 __date__ = "2014"
@@ -210,4 +211,4 @@ class SentenceInflector(FlectClassifier):
         @return: A concatenation of the values of the given features \
             at the given position in the insts array.
         """
-        return ''.join([insts[word_no][feat] for feat in orig_feats])
+        return '|'.join([insts[word_no][feat] for feat in orig_feats])
