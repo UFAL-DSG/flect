@@ -168,7 +168,7 @@ class Model(AbstractModel):
         """\
         Given the config file, construct the classifier (based on the
         'classifier' or 'classifier_class'/'classifier_params' settings.
-        Defaults to DummyClassifier.
+        dEFaults to DummyClassifier.
         """
         if 'classifier' in cfg:
             return cfg['classifier']
@@ -392,6 +392,8 @@ class Model(AbstractModel):
         if 'ignore_attr' not in state:
             state['ignore_attr'] = []
         self.__dict__ = state
+        if not hasattr(self, 'attr_mask'):
+            self.attr_mask = self.get_attr_mask()
 
 
 class SplitModel(AbstractModel):
