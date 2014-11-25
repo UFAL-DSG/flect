@@ -76,6 +76,8 @@ class AbstractModel(object):
         fh = file_stream(model_file, mode='rb', encoding=None)
         unpickler = pickle.Unpickler(fh)
         model = unpickler.load()
+        if not hasattr(model, 'attr_mask'):
+            model.attr_mask = model.get_attr_mask()
         fh.close()
         log_info('Model loaded successfully.')
         return model
@@ -137,14 +139,7 @@ class AbstractModel(object):
         Create a set of selected attributes' names (using data headers, list of attributes
         to select and to ignore, and the class attribute).
         """
-        # only use attributes present in data headers
-        attr_mask = set([attr.name for attr in self.data_headers.attribs])
-        # assume empty selected attributes means all attributes are selected
-        if self.select_attr:
-            attr_mask &= set(self.select_attr)
-        attr_mask -= set([self.class_attr])
-        attr_mask -= set(self.ignore_attr)
-        return attr_mask
+        return NotImplementedError()
 
 
 class Model(AbstractModel):
@@ -295,6 +290,17 @@ class Model(AbstractModel):
             return values[0]
         return values
 
+    def get_attr_mask(self):
+        # only use attributes present in data headers
+        attr_mask = set([attr.name for attr in self.data_headers.attribs])
+        # assume empty selected attributes means all attributes are selected
+        if self.select_attr:
+            attr_mask &= set(self.select_attr)
+        attr_mask -= set([self.class_attr])
+        attr_mask -= set(self.ignore_attr)
+        return attr_mask
+
+
     def __vectorize(self, data):
         """\
         Train vectorization and subsequently vectorize. Accepts a DataSet
@@ -383,6 +389,8 @@ class Model(AbstractModel):
         self.__demarshal_member(state, 'postprocess')
         if 'postprocess' not in state:
             state['postprocess'] = None
+        if 'ignore_attr' not in state:
+            state['ignore_attr'] = []
         self.__dict__ = state
 
 
@@ -444,13 +452,16 @@ class SplitModel(AbstractModel):
         self.trained = True
         log_info('Training done.')
 
+    def get_attr_mask(self):
+        return self.models.itervalues().next().get_attr_mask()
+
     @staticmethod
     def load_from_files(config, model_files):
         model = SplitModel(config)
         for key, model_file in model_files.iteritems():
             model.models[key] = Model.load_from_file(model_file)
         model.data_headers = model.models.itervalues().next().data_headers
-        model.attr_mask = model.models.itervalues().next().attr_mask
+        model.attr_mask = model.get_attr_mask()
         model.trained = True
         return model
 
@@ -501,13 +512,16 @@ class ConcatModel(AbstractModel):
         self.models = []
         self.trained = False
 
+    def get_attr_mask(self):
+        return self.models[0].get_attr_mask()
+
     @staticmethod
     def load_from_files(config, model_files):
         model = ConcatModel(config)
         for model_file in model_files:
             model.models.append(Model.load_from_file(model_file))
         model.data_headers = model.models[0].data_headers
-        model.attr_mask = model.models[0].attr_mask
+        model.attr_mask = model.get_attr_mask()
         model.trained = True
         return model
 
