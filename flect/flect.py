@@ -10,7 +10,7 @@ import re
 from varutil import first
 from functools import partial
 from classif import FlectClassifier
-from logf import log_info
+
 
 __author__ = "Ondřej Dušek"
 __date__ = "2014"
@@ -45,7 +45,7 @@ def inflect(lemma, inflection):
             mids = mid.split(' ')
             search_part = form[0:-1].lower()
             for change in mids:
-                orig, changed = change.split('-')
+                orig, changed = change.split('-', 1)
                 orig_len = len(orig)
                 # numbered change format -- position and length
                 if re.match(r'^[0-9]', orig):
