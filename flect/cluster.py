@@ -50,6 +50,7 @@ class Job(object):
                  created and run (will be created on launch)
     dependencies-list of Jobs this job depends on (must be submitted
                  before submitting this job)
+    queue     -- queue setting for SGE ("*@...*" is added automatically)
 
     In addition, the following values may be queried for each job
     at runtime or later:
@@ -90,6 +91,8 @@ from __future__ import unicode_literals
     # qsub memory command
     QSUB_MEMORY_CMD = '-hard -l mem_free={0} -l act_mem_free={0}' + \
                       ' -l h_vmem={0}'
+    # qsub queue command
+    QSUB_QUEUE_CMD = '-q "*@{0}*"'
     # job status polling delay for wait() in seconds
     TIME_POLL_DELAY = 60
 
@@ -106,6 +109,7 @@ from __future__ import unicode_literals
         self.code = code
         self.memory = self.DEFAULT_MEMORY
         self.cores = self.DEFAULT_CORES
+        self.queue = None
         self.__jobid = None
         self.__host = None
         self.__state = None
@@ -116,11 +120,11 @@ from __future__ import unicode_literals
             self.add_dependency(dependencies)
         self.__name = name if name is not None else self.__generate_name()
         self.submitted = False
-        self.work_dir = work_dir \
-                        if work_dir is not None \
-                        else self.__get_work_dir()
+        self.work_dir = (work_dir
+                         if work_dir is not None
+                         else self.__get_work_dir())
 
-    def submit(self, memory=None, cores=None, work_dir=None):
+    def submit(self, memory=None, cores=None, work_dir=None, queue=None):
         """\
         Submit the job to the cluster. Override the pre-set memory and
         cores defaults if necessary.
@@ -131,6 +135,8 @@ from __future__ import unicode_literals
             self.cores = cores
         if memory is not None:
             self.memory = memory
+        if queue is not None:
+            self.queue = queue
         # create working directory if necessary
         if not os.path.isdir(self.work_dir):
             os.mkdir(self.work_dir)
@@ -312,8 +318,8 @@ from __future__ import unicode_literals
         num = 1
         workdir = None
         while workdir is None or os.path.exists(workdir):
-            workdir = os.getcwdu() + os.path.sep + self.DIR_PREFIX + \
-                    self.name + '-' + str(num).zfill(3)
+            workdir = (os.getcwdu() + os.path.sep + self.DIR_PREFIX +
+                       self.name + '-' + str(num).zfill(3))
             num += 1
         return workdir
 
@@ -324,6 +330,8 @@ from __future__ import unicode_literals
         res = self.QSUB_MEMORY_CMD.format(str(self.memory) + 'G')
         if self.cores > 1:
             res = self.QSUB_MULTICORE_CMD.format(self.cores) + ' ' + res
+        if self.queue is not None:
+            res += ' ' + self.QSUB_QUEUE_CMD.format(self.queue)
         return res
 
     def __get_dependency_string(self):
