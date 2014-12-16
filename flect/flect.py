@@ -105,6 +105,8 @@ class SentenceInflector(FlectClassifier):
         if isinstance(sent, basestring):
             sent = self.parse_factored(sent)
             return_string = True
+        if sent == '' or sent is None:  # rule out weird cases
+            return ''
         # obtain features for classification
         instances = self.create_features(sent)
         # classify: obtain inflection rules
