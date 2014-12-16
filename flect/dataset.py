@@ -341,6 +341,19 @@ class DataSet(object):
         for inst, weight in zip(self.data, self.inst_weights):
             print >> fh, self.__get_arff_line(inst, weight)
 
+    def save_to_csv(self, filename, encoding='UTF-8'):
+        if self.is_sparse:
+            raise Exception('CSV output not supported for sparse data sets!')
+        fh = file_stream(filename, 'w', encoding)
+        # header
+        print >> fh, ','.join([attrib.name for attrib in self.attribs])
+        # instances
+        for inst in self.data:
+            # undo some ARFF escaping (change \' to '')
+            line = re.sub(r'\\\'', r'\'\'', self.__get_arff_line(inst))
+            line = re.sub(r'\\', '', line)
+            print >> fh, line
+
     def load_from_matrix(self, attr_list, matrix):
         """\
         Fill in values from a matrix.
