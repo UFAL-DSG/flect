@@ -47,7 +47,8 @@ POS_ATTR=Tag_POS
 define HELP_MESSAGE
 # Flect training
 # --------------
-# Run training (take data from data/, use runs/, use config from run ###, or default):
+# Run training (take data from data/, use runs/, use config from run ###;
+# the default config from flect/configs/config_$$LANG.py is used if CONFIG is unset)
 make train D="Description" DATA="data_id" [CONFIG=###] [LANG=cs] [MEM=32]
 # Print scores for run ### (can be limited to top ##):
 make scores-### [BEST=##]
@@ -84,7 +85,7 @@ prepare_dir:
 
 prepare_config:
 	@if [ -z "$(CONFIG)" ]; then \
-		cp config-sample.py $(TRY_DIR)/config.py ;\
+		cp ../../configs/config_$(LANG).py $(TRY_DIR)/config.py ;\
 	else \
 		cp $(RUNS_DIR)/$(CONFIG)*/config.py $(TRY_DIR)/ ;\
 	fi
