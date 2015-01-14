@@ -47,6 +47,10 @@ POS_ATTR=Tag_POS
 define HELP_MESSAGE
 # Flect training
 # --------------
+# This makefile automates and simplifies experiments with training Flect models.
+# The experiments are saved in $(RUNS_DIR)/ and numbered consecutively.
+# There are the following commands available:
+#
 # Run training (take data from data/, use runs/, use config from run ###;
 # the default config from flect/configs/config_$$LANG.py is used if CONFIG is unset)
 make train D="Description" DATA="data_id" [CONFIG=###] [LANG=cs] [MEM=32]
