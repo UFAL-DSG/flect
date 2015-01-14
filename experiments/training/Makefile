@@ -89,7 +89,7 @@ prepare_dir:
 
 prepare_config:
 	@if [ -z "$(CONFIG)" ]; then \
-		cp ../../configs/config_$(LANG).py $(TRY_DIR)/config.py ;\
+		cp ../../configs/example_$(LANG).py $(TRY_DIR)/config.py ;\
 	else \
 		cp $(RUNS_DIR)/$(CONFIG)*/config.py $(TRY_DIR)/ ;\
 	fi
