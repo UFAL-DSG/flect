@@ -50,11 +50,14 @@ def concat_attrib(data, attribs, new_name=None, divider='', nonempty=False):
         new_name = '+'.join(attrib_list)
     values = []
     for inst in data:
-        val = [inst[a] if inst[a] is not None else '?' for a in attrib_list]
+        if nonempty:
+            val = [inst[a] if inst[a] is not None else '' for a in attrib_list]
+        else:
+            val = [inst[a] if inst[a] is not None else '?' for a in attrib_list]
         if not nonempty or '' not in val:
             values.append(divider.join(val))
         else:
-            values.append('')
+            values.append(None)
     data.add_attrib(Attribute(new_name, 'string'), values)
 
 

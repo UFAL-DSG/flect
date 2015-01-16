@@ -213,4 +213,8 @@ class SentenceInflector(FlectClassifier):
         @return: A concatenation of the values of the given features \
             at the given position in the insts array.
         """
-        return '|'.join([insts[word_no][feat] for feat in orig_feats])
+        inst = insts[word_no]
+        val = [inst[feat] if inst[feat] is not None else '' for feat in orig_feats]
+        if '' in val:
+            return None
+        return '|'.join(val)
