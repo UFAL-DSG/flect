@@ -9,6 +9,7 @@ is involved.
 
 from __future__ import unicode_literals
 from model import Model
+import re
 
 __author__ = "Ondřej Dušek"
 __date__ = "2014"
@@ -87,6 +88,15 @@ class FlectClassifier(object):
     def parse_factored(self, sent):
         """\
         Parse a factored format, i.e. return a list of tuples corresponding
-        to words in the sentence.
+        to features of words in the sentence.
         """
-        return [tuple(word.split('|')) for word in sent.split('\n')]
+        return [tuple(self._deescape(val) for val in word.split('|')) for word in sent.split('\n')]
+
+    def _deescape(self, value):
+        """De-escaping special characters in values (?, |, &)."""
+        if value == '?':
+            return None
+        value = re.sub(r'&qu;', r'?', value)
+        value = re.sub(r'&pipe;', r'|', value)
+        value = re.sub(r'&amp;', r'&', value)
+        return value
