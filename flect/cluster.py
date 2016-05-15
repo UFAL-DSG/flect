@@ -13,6 +13,7 @@ import re
 import time
 from varutil import first
 import collections
+from logf import log_warn
 
 """\
 Interface for running any Python code as a job on the cluster
@@ -50,7 +51,7 @@ class Job(object):
                  created and run (will be created on launch)
     dependencies-list of Jobs this job depends on (must be submitted
                  before submitting this job)
-    queue     -- queue setting for SGE ("*@...*" is added automatically)
+    queue     -- queue setting for SGE
 
     In addition, the following values may be queried for each job
     at runtime or later:
@@ -92,7 +93,7 @@ from __future__ import unicode_literals
     QSUB_MEMORY_CMD = '-hard -l mem_free={0} -l act_mem_free={0}' + \
                       ' -l h_vmem={0}'
     # qsub queue command
-    QSUB_QUEUE_CMD = '-q "*@{0}*"'
+    QSUB_QUEUE_CMD = '-q "{0}"'
     # job status polling delay for wait() in seconds
     TIME_POLL_DELAY = 60
 
@@ -261,7 +262,10 @@ from __future__ import unicode_literals
     def delete(self):
         """Delete this job."""
         if self.submitted:
-            self.__try_command('qdel ' + self.jobid)
+            try:
+                self.__try_command('qdel ' + self.jobid)
+            except RuntimeError as e:
+                log_warn('Could not delete job: ' + str(e))
 
     @property
     def host(self):
