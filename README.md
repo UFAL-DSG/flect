@@ -57,8 +57,8 @@ works:
     Generation Models", in: *ACL Student Research Workshop*, Sofia, 2013.
 
 The paper which describes the inner workings of the software and our 
-experiments done with it, is available for download at
-[https://aclweb.org/anthology-new/P/P13/P13-3023.pdf].
+experiments done with it, is available [here](http://www.aclweb.org/anthology/P13-3023)
+for download.
 
 You may contact the authors at odusek * ufal.mff.cuni.cz or through GitHub
 in case of bugs, comments, or questions.
